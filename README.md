@@ -23,7 +23,7 @@ if (!storage.local.pressure){ // initialize if this is the first time the script
 }
 ... // more
 ```
-- The ** post-script** section evaluates the "decision" taken by the decision table. If "decision.intrusion" is true, it dweets a new message on behalf of the "main_entrance_door" device towards all other devices.
+- The **post-script** section evaluates the "decision" taken by the decision table. If "decision.intrusion" is true, it dweets a new message on behalf of the "main_entrance_door" device towards all other devices.
 ```
 //Variable "decision" is the object returned by the decision table execution.
 //Variable "decision" format is [{"action1": "value1", "action2":  "value2"}].
