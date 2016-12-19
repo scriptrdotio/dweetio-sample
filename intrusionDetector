@@ -1,0 +1,90 @@
+//Get payload parameters
+var pl = null;
+var requestBody = request.body;
+if (!requestBody) {
+	pl = request.parameters.payload;
+	pl = JSON.parse(pl);
+} else {
+	pl = requestBody.payload;
+}
+
+//START TABLE DECISION CODE
+function execute(pl) {
+
+var decision = [];
+
+//PRESCRIPT START
+
+if (!storage.local.pressure){ // initialize if this is the first time the script is invoked
+  init(); 
+}else {
+  
+  // if detected pressure occurred less than 5 seconds before the first event, increment counter
+  var now = new Date().getTime();  
+  if (now - storage.local.pressure.time < 5000) {
+    storage.local.pressure.count = storage.local.pressure.count + 1;
+  }else {
+    // if pressure was detected more than 5 seconds after first event, re-initialize
+    init();
+  }  
+}
+
+// Add the value of the counter to the payload used by the decision table
+pl["count"] = storage.local.pressure.count;
+  
+function init() {
+  
+  storage.local.pressure = {};
+  storage.local.pressure.count = 1;
+  storage.local.pressure.time = new Date().getTime();
+}  
+
+
+//PRESCRIPT END
+
+//RULES EVALUATION START
+if(typeof pl != "object") {
+  return[];
+} else { 
+	  if((pl != null && pl["pressure"] != undefined && pl["pressure"] > 150) && isAny("count")){
+       decision.push({ "intrusion": "true" });
+	} 
+	 else if((pl != null && pl["pressure"] != undefined && pl["pressure"] > 70) && (pl != null && pl["count"] != undefined && pl["count"] > 2)){
+       decision.push({ "intrusion": "true" });
+	} 
+	 else if((pl != null && pl["pressure"] != undefined && pl["pressure"] < 70) && isAny("count")){
+       decision.push({ "intrusion": "false" });
+	} 
+}
+//RULES EVALUATION END
+
+//POSTSCRIPT START
+//Variable "decision" is the object returned by the decision table execution.
+//Variable "decision" format is [{"action1": "value1", "action2":  "value2"}].
+if (decision.intrusion) {
+  var dweetio = require("dweet");
+  var dweeter = new dweetio.Dweet("main_entrance_door");
+  dweeter.postDweet({"msg":"instrusion"});
+}
+return decision;
+//POSTSCRIPT END
+
+}
+//Check if value is "in" or is "not in" array
+//return true or false
+function evalArrayOperation(value, operator,  array) {
+	if(operator == "in") {
+		return (array.indexOf(value)>-1);
+	} else {
+		return (array.indexOf(value) == -1) ;
+	} 
+}
+
+//isAny function, when condition expression is not important
+function isAny(param) {
+	return true;
+}
+
+//START_REST_CALL 
+return execute(pl);
+//END_REST_CALL
